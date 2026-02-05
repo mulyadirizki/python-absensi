@@ -52,6 +52,10 @@ def absen():
     result = run_fetch_attendance(ips, start_date=start_date, end_date=end_date)
     return jsonify(result)
 
+@app.route("/api/hello", methods=["GET"])
+def hello():
+    return jsonify({"message": "Hello from Python API"})
+
 if __name__ == "__main__":
     # Jalankan Flask di host 0.0.0.0 agar bisa diakses network
     app.run(host="0.0.0.0", port=5000, debug=True)

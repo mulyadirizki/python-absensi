@@ -1,34 +1,70 @@
-import subprocess
-import csv
-from io import StringIO
+import os
 
-# ==========================
+# ======================================================
 # KONFIGURASI
-# ==========================
-MDB_FILE_PATH = "/mnt/db_absen/DB Nov 2025_update.MDB"
+# ======================================================
+
+# Folder hasil mount CIFS (share Windows)
+MDB_BASE_PATH = "/mnt/db_absen"
+
+# File penunjuk MDB aktif (ISI: nama file .MDB)
+ACTIVE_MDB_FILE = "/mnt/db_absen/active_mdb.txt"
 
 
-def fetch_table(table_name, logs=None):
+# ======================================================
+# HELPER
+# ======================================================
+
+def get_active_mdb_path():
     """
-    Ambil data dari tabel MDB menggunakan mdb-export
-    Return: list of dict
+    Mengembalikan FULL PATH ke file MDB aktif
     """
-    try:
-        cmd = ["mdb-export", MDB_FILE_PATH, table_name]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+    if not os.path.isfile(ACTIVE_MDB_FILE):
+        raise FileNotFoundError(
+            f"active_mdb.txt tidak ditemukan: {ACTIVE_MDB_FILE}"
+        )
 
-        if result.returncode != 0:
-            raise Exception(result.stderr)
+    with open(ACTIVE_MDB_FILE, "r", encoding="utf-8") as f:
+        mdb_name = f.read().strip()
 
-        reader = csv.DictReader(StringIO(result.stdout))
-        rows = list(reader)
+    if not mdb_name:
+        raise ValueError("active_mdb.txt kosong")
 
-        if logs is not None:
-            logs.append(f"Berhasil ambil {len(rows)} row dari tabel {table_name}")
+    mdb_path = os.path.join(MDB_BASE_PATH, mdb_name)
 
-        return rows
+    if not os.path.isfile(mdb_path):
+        raise FileNotFoundError(
+            f"File MDB aktif tidak ditemukan: {mdb_path}"
+        )
 
-    except Exception as e:
-        if logs is not None:
-            logs.append(f"Gagal baca tabel {table_name}: {e}")
+    return mdb_path
+
+
+def get_active_mdb_name():
+    """
+    Hanya nama file MDB aktif
+    """
+    return os.path.basename(get_active_mdb_path())
+
+
+def list_all_mdb_files():
+    """
+    List semua file .mdb di folder mount
+    """
+    if not os.path.isdir(MDB_BASE_PATH):
         return []
+
+    return sorted(
+        f for f in os.listdir(MDB_BASE_PATH)
+        if f.lower().endswith(".mdb")
+    )
+
+
+# ======================================================
+# CLI TEST
+# ======================================================
+if __name__ == "__main__":
+    print("MDB AKTIF :", get_active_mdb_path())
+    print("SEMUA MDB :")
+    for f in list_all_mdb_files():
+        print("-", f)

@@ -1,35 +1,32 @@
 import pandas as pd
-from config.db_access import get_mdb_connection
+from config.db_access import fetch_table
 from datetime import datetime
+
 
 def fetch_holidays(limit=None, logs=None):
     if logs is None:
         logs = []
 
-    conn = get_mdb_connection(logs)
-    if not conn:
-        logs.append("Gagal koneksi ke file MDB.")
+    rows = fetch_table("HOLIDAYS", logs)
+
+    if not rows:
+        logs.append("Data HOLIDAYS kosong atau gagal dibaca.")
         return None
 
-    try:
-        # Filter: hanya ambil data dari 3 bulan terakhir tahun berjalan
-        query = """
-            SELECT HOLIDAYID, HOLIDAYNAME, HOLIDAYYEAR, HOLIDAYMONTH, HOLIDAYDAY, STARTTIME, DURATION, DeptID, HOLIDAYTYPE
-            FROM HOLIDAYS
-            WHERE Year(STARTTIME) = Year(Date())
-        """
+    df = pd.DataFrame(rows)
 
-        # Kalau mau batasi jumlah user
-        if limit:
-            query += f" AND HOLIDAYID IN (SELECT TOP {limit} HOLIDAYID FROM HOLIDAYS)"
+    # =========================
+    # FILTER DI PYTHON (bukan SQL Access)
+    # =========================
+    current_year = datetime.now().year
 
-        df = pd.read_sql_query(query, conn)
-        conn.close()
+    if "STARTTIME" in df.columns:
+        df["STARTTIME"] = pd.to_datetime(df["STARTTIME"], errors="coerce")
+        df = df[df["STARTTIME"].dt.year == current_year]
 
-        logs.append(f"Berhasil ambil {len(df)} data HOLIDAYS.")
-        return df
+    # Batasi jumlah data jika perlu
+    if limit:
+        df = df.head(limit)
 
-    except Exception as e:
-        logs.append(f"Error saat ambil data HOLIDAYS: {e}")
-        conn.close()
-        return None
+    logs.append(f"Berhasil ambil {len(df)} data HOLIDAYS.")
+    return df

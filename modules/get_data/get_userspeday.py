@@ -1,36 +1,53 @@
 import pandas as pd
-from config.db_access import get_mdb_connection
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from config.db_access import fetch_table
+
 
 def fetch_user_speday(limit=None, logs=None):
     if logs is None:
         logs = []
 
-    conn = get_mdb_connection(logs)
-    if not conn:
-        logs.append("Gagal koneksi ke file MDB.")
+    rows = fetch_table("USER_SPEDAY", logs)
+
+    if not rows:
+        logs.append("Data USER_SPEDAY kosong atau gagal dibaca.")
         return None
 
-    try:
-        # Filter: hanya ambil data dari 3 bulan terakhir tahun berjalan
-        query = """
-            SELECT USERID, STARTSPECDAY, ENDSPECDAY, DATEID, YUANYING, DATE
-            FROM USER_SPEDAY
-            WHERE STARTSPECDAY >= DateAdd('m', -3, Date())
-              AND Year(STARTSPECDAY) = Year(Date())
-        """
+    df = pd.DataFrame(rows)
 
-        # Kalau mau batasi jumlah user
-        if limit:
-            query += f" AND USERID IN (SELECT TOP {limit} USERID FROM USER_SPEDAY)"
+    # Pastikan kolom tanggal dikonversi
+    date_cols = ["STARTSPECDAY", "ENDSPECDAY", "DATE"]
+    for col in date_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
-        df = pd.read_sql_query(query, conn)
-        conn.close()
+    now = datetime.now()
+    three_months_ago = now - relativedelta(months=3)
 
-        logs.append(f"Berhasil ambil {len(df)} data dari USER_SPEDAY (3 bulan terakhir).")
-        return df
+    # Filter:
+    # 1. STARTSPECDAY >= 3 bulan terakhir
+    # 2. Tahun STARTSPECDAY = tahun berjalan
+    df = df[
+        (df["STARTSPECDAY"] >= three_months_ago) &
+        (df["STARTSPECDAY"].dt.year == now.year)
+    ]
 
-    except Exception as e:
-        logs.append(f"Error saat ambil data USER_SPEDAY: {e}")
-        conn.close()
-        return None
+    # Batasi jumlah USERID unik (opsional)
+    if limit:
+        user_ids = df["USERID"].dropna().unique()[:limit]
+        df = df[df["USERID"].isin(user_ids)]
+
+    # Pilih kolom yang dipakai saja
+    cols = [
+        "USERID",
+        "STARTSPECDAY",
+        "ENDSPECDAY",
+        "DATEID",
+        "YUANYING",
+        "DATE",
+    ]
+    df = df[[c for c in cols if c in df.columns]]
+
+    logs.append(f"Berhasil ambil {len(df)} data dari USER_SPEDAY (3 bulan terakhir).")
+    return df

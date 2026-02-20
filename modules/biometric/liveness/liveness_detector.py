@@ -1,0 +1,1 @@
+# anti foto/video spoof

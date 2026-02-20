@@ -1,4 +1,5 @@
 import os
+import pyodbc
 
 # ======================================================
 # KONFIGURASI
@@ -58,6 +59,36 @@ def list_all_mdb_files():
         f for f in os.listdir(MDB_BASE_PATH)
         if f.lower().endswith(".mdb")
     )
+
+def fetch_table(query):
+    """
+    Eksekusi query ke file MDB aktif
+    dan return hasil dalam bentuk list of dict
+    """
+    mdb_path = get_active_mdb_path()
+
+    conn_str = (
+        r"DRIVER={MDBTools};"
+        rf"DBQ={mdb_path};"
+    )
+
+    try:
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+        cursor.execute(query)
+
+        columns = [column[0] for column in cursor.description]
+        rows = cursor.fetchall()
+
+        result = [dict(zip(columns, row)) for row in rows]
+
+        cursor.close()
+        conn.close()
+
+        return result
+
+    except Exception as e:
+        raise Exception(f"Gagal eksekusi query MDB: {str(e)}")
 
 
 # ======================================================

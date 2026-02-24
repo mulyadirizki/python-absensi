@@ -1,1 +1,0 @@
-# load & simpan embedding dokter

@@ -1,1 +1,0 @@
-# deteksi wajah dari frame

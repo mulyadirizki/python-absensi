@@ -23,8 +23,8 @@ from main import (
     run_fetch_attendance
 )
 
-from biometric.recognition.face_register import register_face_multi
-from biometric.recognition.face_verify import verify_face
+# from biometric.recognition.face_register import register_face_multi
+# from biometric.recognition.face_verify import verify_face
 
 # -----------------------------
 # Flask app
@@ -108,45 +108,45 @@ def hello():
 # =========================
 # FACE REGISTER (Dipanggil Laravel saat daftar wajah)
 # =========================
-@app.route("/face/register", methods=["POST"])
-def face_register_api():
-    try:
-        data = request.get_json(force=True)
+# @app.route("/face/register", methods=["POST"])
+# def face_register_api():
+#     try:
+#         data = request.get_json(force=True)
 
-        user_id = data.get("user_id")
-        images_base64 = data.get("images_base64")  # ⬅️ sekarang array
+#         user_id = data.get("user_id")
+#         images_base64 = data.get("images_base64")  # ⬅️ sekarang array
 
-        result = register_face_multi(user_id, images_base64)
-        return jsonify(result)
+#         result = register_face_multi(user_id, images_base64)
+#         return jsonify(result)
 
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             "success": False,
+#             "message": str(e)
+#         }), 500
 
 
 # =========================
 # FACE VERIFY (LOGIN DOKTER 1:1)
 # =========================
-@app.route("/face/verify", methods=["POST"])
-def face_verify_api():
-    try:
-        data = request.get_json(force=True)
+# @app.route("/face/verify", methods=["POST"])
+# def face_verify_api():
+#     try:
+#         data = request.get_json(force=True)
 
-        image_base64 = data.get("image_base64")
-        embedding_saved = data.get("embedding_saved")
-        threshold = float(data.get("threshold", 0.65))
+#         image_base64 = data.get("image_base64")
+#         embedding_saved = data.get("embedding_saved")
+#         threshold = float(data.get("threshold", 0.65))
 
-        result = verify_face(image_base64, embedding_saved, threshold)
-        return jsonify(result)
+#         result = verify_face(image_base64, embedding_saved, threshold)
+#         return jsonify(result)
 
-    except Exception as e:
-        logger.exception("Error in /face/verify")
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+#     except Exception as e:
+#         logger.exception("Error in /face/verify")
+#         return jsonify({
+#             "success": False,
+#             "message": str(e)
+#         }), 500
 
 
 @app.route("/health", methods=["GET"])

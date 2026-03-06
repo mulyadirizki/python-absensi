@@ -8,8 +8,15 @@ from insightface.app import FaceAnalysis
 class FaceService:
     def __init__(self):
         # Load model SEKALI saja (critical for performance)
-        self.model = FaceAnalysis(allowed_modules=['detection', 'recognition'])
-        self.model.prepare(ctx_id=-1)  # -1 CPU, 0 GPU
+        # self.model = FaceAnalysis(allowed_modules=['detection', 'recognition'])
+        # self.model.prepare(ctx_id=-1)  # -1 CPU, 0 GPU
+        self.model = FaceAnalysis(
+            name="buffalo_s",
+            allowed_modules=['detection', 'recognition'],
+            providers=['CPUExecutionProvider']
+        )
+
+        self.model.prepare(ctx_id=-1, det_size=(640, 640))
 
     def decode_image(self, base64_str):
         if ',' in base64_str:

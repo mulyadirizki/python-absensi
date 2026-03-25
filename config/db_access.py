@@ -40,44 +40,72 @@ def list_all_mdb_files():
 # GET TABLE DATA (multi-platform)
 # ======================================================
 if platform.system() == "Windows":
-    # Windows → pakai pyodbc
     import pyodbc
 
-    def fetch_table(table_name):
-        mdb_path = get_active_mdb_path()
-        conn_str = (
-            r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-            f"DBQ={mdb_path};"
-        )
-        conn = pyodbc.connect(conn_str)
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
-        cols = [column[0] for column in cursor.description]
-        rows = [dict(zip(cols, row)) for row in cursor.fetchall()]
-        conn.close()
-        return rows
+    def fetch_table(table_name, logs=None):
+        if logs is None:
+            logs = []
+
+        try:
+            mdb_path = get_active_mdb_path()
+            logs.append(f"MDB aktif: {mdb_path}")
+
+            conn_str = (
+                r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
+                f"DBQ={mdb_path};"
+            )
+
+            conn = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+
+            cursor.execute(f"SELECT * FROM {table_name}")
+            cols = [column[0] for column in cursor.description]
+            rows = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+            conn.close()
+
+            logs.append(f"Berhasil ambil {len(rows)} baris dari {table_name}")
+            return rows
+
+        except Exception as e:
+            logs.append(f"Error Windows fetch: {str(e)}")
+            return []
 
 else:
-    # Linux → pakai mdbtools
     import shutil
 
-    def fetch_table(table_name):
-        mdb_path = get_active_mdb_path()
-        if not shutil.which("mdb-export"):
-            raise EnvironmentError("mdb-export tidak ditemukan, install mdbtools!")
+    def fetch_table(table_name, logs=None):
+        if logs is None:
+            logs = []
+
         try:
+            mdb_path = get_active_mdb_path()
+            logs.append(f"MDB aktif: {mdb_path}")
+
+            if not shutil.which("mdb-export"):
+                raise Exception("mdb-export tidak ditemukan (install mdbtools)")
+
             output = subprocess.check_output(
-                ["mdb-export", mdb_path, table_name], universal_newlines=True
+                ["mdb-export", mdb_path, table_name],
+                universal_newlines=True
             )
+
             lines = output.strip().splitlines()
             if not lines:
+                logs.append("Tidak ada data")
                 return []
+
             header = lines[0].split(",")
             data_rows = []
+
             for line in lines[1:]:
                 values = line.split(",")
                 row = {header[i]: values[i] for i in range(len(header))}
                 data_rows.append(row)
+
+            logs.append(f"Berhasil ambil {len(data_rows)} baris dari {table_name}")
             return data_rows
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Error membaca tabel {table_name}: {str(e)}")
+
+        except Exception as e:
+            logs.append(f"Error Linux fetch: {str(e)}")
+            return []

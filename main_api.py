@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # -----------------------------
 # Routes
 # -----------------------------
-@app.route('/user', methods=['GET'])
+@app.route('/user', methods=['GET', 'POST'])
 def user():
     try:
         return jsonify(run_userinfo())

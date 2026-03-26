@@ -41,7 +41,7 @@ def run_user_temp_sch():
     try:
         logs.append("Menjalankan sync USER_TEMP_SCH")
 
-        rows = fetch_user_temp_sch(logs=logs)
+        rows = fetch_user_temp_sch(limit=5000, logs=logs)
 
         # ✅ FIX TOTAL (NO DataFrame)
         if not rows:

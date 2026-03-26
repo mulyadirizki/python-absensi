@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from config.db_access import fetch_query
 
 def fetch_user_temp_sch(limit=None, logs=None):
@@ -7,22 +7,24 @@ def fetch_user_temp_sch(limit=None, logs=None):
 
     logs.append("Menjalankan sync USER_TEMP_SCH")
 
-    query = """
+    since_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+
+    query = f"""
     SELECT USERID, SCHCLASSID, COMETIME, LEAVETIME, FLAG
     FROM USER_TEMP_SCH
     WHERE 
         COMETIME IS NOT NULL
-        AND COMETIME >= DATE() - 60
+        AND COMETIME >= '{since_date}'
     """
+
+    logs.append(f"Query: {query}")
 
     rows = fetch_query(query, logs)
 
-    # ❌ JANGAN pakai df.empty
     if not rows:
         logs.append("Data kosong setelah filter")
         return []
 
-    # OPTIONAL LIMIT
     if limit:
         rows = rows[:limit]
 

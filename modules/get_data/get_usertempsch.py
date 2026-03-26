@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta
 from config.db_access import fetch_table
 
+
 def parse_date(val):
+    """Parse berbagai format tanggal dari MDB"""
     if not val:
         return None
+
+    if isinstance(val, datetime):
+        return val
+
+    val = str(val).strip()
 
     formats = [
         "%Y-%m-%d %H:%M:%S",
@@ -22,6 +29,7 @@ def parse_date(val):
 
     return None
 
+
 def fetch_user_temp_sch(limit=None, logs=None):
     if logs is None:
         logs = []
@@ -29,18 +37,24 @@ def fetch_user_temp_sch(limit=None, logs=None):
     logs.append("Menjalankan sync USER_TEMP_SCH")
 
     try:
-        # 🔥 ambil semua (pakai mdb-export)
+        # 🔥 ambil semua data dari MDB
         rows = fetch_table("USER_TEMP_SCH", logs)
 
         if not rows:
             logs.append("Data kosong dari MDB")
             return []
 
-        # 🔹 filter di Python (lebih stabil dari mdb-sql)
+        logs.append(f"Berhasil ambil {len(rows)} baris dari USER_TEMP_SCH")
+
+        # 🔍 DEBUG: cek sample format tanggal
+        for i, r in enumerate(rows[:5]):
+            logs.append(f"Sample COMETIME[{i}]: {r.get('COMETIME')}")
+
         since_date = datetime.now() - timedelta(days=60)
-        current_year = datetime.now().year
 
         filtered = []
+        skipped_parse = 0
+        skipped_date = 0
 
         for r in rows:
             try:
@@ -48,25 +62,24 @@ def fetch_user_temp_sch(limit=None, logs=None):
                 if not cometime:
                     continue
 
-                # parse datetime
-                try:
-                    dt = parse_date(cometime)
-                    if not dt:
-                        continue
-                except:
+                # ✅ parsing tanggal (robust)
+                dt = parse_date(cometime)
+                if not dt:
+                    skipped_parse += 1
                     continue
 
+                # ✅ filter tanggal (cukup ini saja)
                 if dt < since_date:
-                    continue
-
-                if dt.year != current_year:
+                    skipped_date += 1
                     continue
 
                 filtered.append({
                     "USERID": r.get("USERID"),
                     "SCHCLASSID": r.get("SCHCLASSID"),
-                    "COMETIME": str(dt),
-                    "LEAVETIME": str(r.get("LEAVETIME")) if r.get("LEAVETIME") else None,
+                    "COMETIME": dt.strftime("%Y-%m-%d %H:%M:%S"),
+                    "LEAVETIME": (
+                        str(r.get("LEAVETIME")) if r.get("LEAVETIME") else None
+                    ),
                     "FLAG": r.get("FLAG"),
                 })
 
@@ -74,10 +87,13 @@ def fetch_user_temp_sch(limit=None, logs=None):
                 logs.append(f"Skip row error: {str(e)}")
 
         logs.append(f"Total setelah filter: {len(filtered)}")
+        logs.append(f"Skip karena parse gagal: {skipped_parse}")
+        logs.append(f"Skip karena tanggal lama: {skipped_date}")
 
-        # 🔥 batasi biar tidak timeout
+        # 🔥 limit biar aman dari timeout
         if limit:
             filtered = filtered[:limit]
+            logs.append(f"Data dibatasi ke {limit} baris")
 
         return filtered
 

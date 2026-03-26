@@ -7,27 +7,51 @@ def fetch_user_temp_sch(limit=None, logs=None):
 
     logs.append("Menjalankan sync USER_TEMP_SCH")
 
-    since_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+    try:
+        # 🔹 Hitung tanggal (60 hari ke belakang)
+        since_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
 
-    query = f"""
-    SELECT USERID, SCHCLASSID, COMETIME, LEAVETIME, FLAG
-    FROM USER_TEMP_SCH
-    WHERE 
-        COMETIME IS NOT NULL
-        AND COMETIME >= '{since_date}'
-    """
+        # 🔹 Gunakan format aman untuk MDB (string date)
+        query = f"""
+        SELECT USERID, SCHCLASSID, COMETIME, LEAVETIME, FLAG
+        FROM USER_TEMP_SCH
+        WHERE 
+            COMETIME IS NOT NULL
+            AND COMETIME >= '{since_date}'
+        """
 
-    logs.append(f"Query: {query}")
+        logs.append(f"Query: {query.strip()}")
 
-    rows = fetch_query(query, logs)
+        rows = fetch_query(query, logs)
 
-    if not rows:
-        logs.append("Data kosong setelah filter")
+        # 🔹 Validasi hasil
+        if not isinstance(rows, list):
+            logs.append("ERROR: hasil query bukan list")
+            return []
+
+        if not rows:
+            logs.append("Data kosong setelah filter")
+            return []
+
+        # 🔹 Optional limit
+        if limit and isinstance(limit, int):
+            rows = rows[:limit]
+
+        # 🔹 Normalisasi data (penting!)
+        cleaned_rows = []
+        for r in rows:
+            cleaned_rows.append({
+                "USERID": r.get("USERID"),
+                "SCHCLASSID": r.get("SCHCLASSID"),
+                "COMETIME": r.get("COMETIME"),
+                "LEAVETIME": r.get("LEAVETIME"),
+                "FLAG": r.get("FLAG"),
+            })
+
+        logs.append(f"Final data: {len(cleaned_rows)} baris")
+
+        return cleaned_rows
+
+    except Exception as e:
+        logs.append(f"Error fetch_user_temp_sch: {str(e)}")
         return []
-
-    if limit:
-        rows = rows[:limit]
-
-    logs.append(f"Final data: {len(rows)} baris")
-
-    return rows

@@ -48,7 +48,7 @@ def user():
         logger.exception("Error in /user")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/jadwal', methods=['GET'])
+@app.route('/jadwal', methods=['GET', 'POST'])
 def jadwal():
     try:
         return jsonify(run_user_temp_sch())
@@ -56,7 +56,7 @@ def jadwal():
         logger.exception("Error in /jadwal")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/shift', methods=['GET'])
+@app.route('/shift', methods=['GET', 'POST'])
 def shift():
     try:
         return jsonify(run_schclass())
@@ -64,7 +64,7 @@ def shift():
         logger.exception("Error in /shift")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/speday', methods=['GET'])
+@app.route('/speday', methods=['GET', 'POST'])
 def speday():
     try:
         return jsonify(run_user_speday())
@@ -72,7 +72,7 @@ def speday():
         logger.exception("Error in /speday")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/ofrun', methods=['GET'])
+@app.route('/ofrun', methods=['GET', 'POST'])
 def ofrun():
     try:
         return jsonify(run_user_of_run())
@@ -80,7 +80,7 @@ def ofrun():
         logger.exception("Error in /ofrun")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/holidays', methods=['GET'])
+@app.route('/holidays', methods=['GET', 'POST'])
 def holidays():
     try:
         return jsonify(run_holidays())

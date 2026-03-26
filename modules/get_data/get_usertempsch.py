@@ -1,57 +1,52 @@
-from datetime import datetime, timedelta
-from config.db_access import fetch_query
+import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from config.db_access import fetch_table
+
 
 def fetch_user_temp_sch(limit=None, logs=None):
     if logs is None:
         logs = []
 
-    logs.append("Menjalankan sync USER_TEMP_SCH")
+    rows = fetch_table("USER_TEMP_SCH", logs)
 
-    try:
-        # 🔹 Hitung tanggal (60 hari ke belakang)
-        since_date = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+    if not rows:
+        logs.append("Data USER_TEMP_SCH kosong atau gagal dibaca.")
+        return None
 
-        # 🔹 Gunakan format aman untuk MDB (string date)
-        query = f"""
-        SELECT USERID, SCHCLASSID, COMETIME, LEAVETIME, FLAG
-        FROM USER_TEMP_SCH
-        WHERE 
-            COMETIME IS NOT NULL
-            AND COMETIME >= '{since_date}'
-        """
+    df = pd.DataFrame(rows)
 
-        logs.append(f"Query: {query.strip()}")
+    # Pastikan kolom tanggal jadi datetime
+    date_cols = ["COMETIME", "LEAVETIME"]
+    for col in date_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
-        rows = fetch_query(query, logs)
+    now = datetime.now()
+    two_months_ago = now - relativedelta(months=2)
 
-        # 🔹 Validasi hasil
-        if not isinstance(rows, list):
-            logs.append("ERROR: hasil query bukan list")
-            return []
+    # Filter:
+    # 1. COMETIME >= 2 bulan terakhir
+    # 2. Tahun COMETIME = tahun berjalan
+    df = df[
+        (df["COMETIME"] >= two_months_ago) &
+        (df["COMETIME"].dt.year == now.year)
+    ]
 
-        if not rows:
-            logs.append("Data kosong setelah filter")
-            return []
+    # Batasi jumlah USERID unik (opsional)
+    if limit:
+        user_ids = df["USERID"].dropna().unique()[:limit]
+        df = df[df["USERID"].isin(user_ids)]
 
-        # 🔹 Optional limit
-        if limit and isinstance(limit, int):
-            rows = rows[:limit]
+    # Pilih kolom yang dibutuhkan saja
+    cols = [
+        "USERID",
+        "SCHCLASSID",
+        "COMETIME",
+        "LEAVETIME",
+        "FLAG",
+    ]
+    df = df[[c for c in cols if c in df.columns]]
 
-        # 🔹 Normalisasi data (penting!)
-        cleaned_rows = []
-        for r in rows:
-            cleaned_rows.append({
-                "USERID": r.get("USERID"),
-                "SCHCLASSID": r.get("SCHCLASSID"),
-                "COMETIME": r.get("COMETIME"),
-                "LEAVETIME": r.get("LEAVETIME"),
-                "FLAG": r.get("FLAG"),
-            })
-
-        logs.append(f"Final data: {len(cleaned_rows)} baris")
-
-        return cleaned_rows
-
-    except Exception as e:
-        logs.append(f"Error fetch_user_temp_sch: {str(e)}")
-        return []
+    logs.append(f"Berhasil ambil {len(df)} data dari USER_TEMP_SCH (2 bulan terakhir).")
+    return df

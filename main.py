@@ -43,12 +43,12 @@ def run_user_temp_sch():
 
         rows = fetch_user_temp_sch(logs=logs)
 
-        # ✅ FIX: jangan pakai df.empty
+        # ✅ FIX TOTAL (NO DataFrame)
         if not rows:
             logs.append("Tidak ada data jadwal kerja yang berhasil diambil.")
             return {"success": False, "logs": logs}
 
-        # ✅ FIX: konversi datetime ke string (per row, bukan per kolom)
+        # 🔹 convert datetime → string
         for row in rows:
             for col in ["COMETIME", "LEAVETIME"]:
                 if col in row and row[col] is not None:

@@ -8,7 +8,14 @@ def fetch_user_temp_sch(limit=None, logs=None):
     if logs is None:
         logs = []
 
-    rows = fetch_table("USER_TEMP_SCH", logs)
+    query = """
+        SELECT USERID, SCHCLASSID, COMETIME, LEAVETIME, FLAG
+        FROM USER_TEMP_SCH
+        WHERE 
+            COMETIME >= DATEADD(MONTH, -2, GETDATE())
+            AND YEAR(COMETIME) = YEAR(GETDATE())
+        """
+    rows = fetch_table(query, logs, is_query=True)
 
     if not rows:
         logs.append("Data USER_TEMP_SCH kosong atau gagal dibaca.")

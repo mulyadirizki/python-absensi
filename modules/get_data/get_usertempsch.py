@@ -3,14 +3,18 @@ from config.db_access import fetch_table
 
 
 def parse_date(val):
-    """Parse berbagai format tanggal dari MDB"""
     if not val:
         return None
 
+    # ✅ kalau sudah datetime, langsung pakai
     if isinstance(val, datetime):
         return val
 
     val = str(val).strip()
+
+    # 🔥 bersihin format aneh MDB (kadang ada .0)
+    if "." in val:
+        val = val.split(".")[0]
 
     formats = [
         "%Y-%m-%d %H:%M:%S",
@@ -37,7 +41,6 @@ def fetch_user_temp_sch(limit=None, logs=None):
     logs.append("Menjalankan sync USER_TEMP_SCH")
 
     try:
-        # 🔥 ambil semua data dari MDB
         rows = fetch_table("USER_TEMP_SCH", logs)
 
         if not rows:
@@ -46,7 +49,7 @@ def fetch_user_temp_sch(limit=None, logs=None):
 
         logs.append(f"Berhasil ambil {len(rows)} baris dari USER_TEMP_SCH")
 
-        # 🔍 DEBUG: cek sample format tanggal
+        # 🔍 DEBUG sample
         for i, r in enumerate(rows[:5]):
             logs.append(f"Sample COMETIME[{i}]: {r.get('COMETIME')}")
 
@@ -62,13 +65,12 @@ def fetch_user_temp_sch(limit=None, logs=None):
                 if not cometime:
                     continue
 
-                # ✅ parsing tanggal (robust)
                 dt = parse_date(cometime)
                 if not dt:
                     skipped_parse += 1
                     continue
 
-                # ✅ filter tanggal (cukup ini saja)
+                # ✅ cukup pakai ini saja
                 if dt < since_date:
                     skipped_date += 1
                     continue
@@ -87,13 +89,12 @@ def fetch_user_temp_sch(limit=None, logs=None):
                 logs.append(f"Skip row error: {str(e)}")
 
         logs.append(f"Total setelah filter: {len(filtered)}")
-        logs.append(f"Skip karena parse gagal: {skipped_parse}")
-        logs.append(f"Skip karena tanggal lama: {skipped_date}")
+        logs.append(f"Skip parse gagal: {skipped_parse}")
+        logs.append(f"Skip tanggal lama: {skipped_date}")
 
-        # 🔥 limit biar aman dari timeout
         if limit:
             filtered = filtered[:limit]
-            logs.append(f"Data dibatasi ke {limit} baris")
+            logs.append(f"Limit diterapkan: {limit}")
 
         return filtered
 

@@ -41,27 +41,30 @@ def run_user_temp_sch():
     try:
         logs.append("Menjalankan sync USER_TEMP_SCH")
 
-        df = fetch_user_temp_sch()
-        if df is None or df.empty:
+        rows = fetch_user_temp_sch(logs=logs)
+
+        # ✅ FIX: jangan pakai df.empty
+        if not rows:
             logs.append("Tidak ada data jadwal kerja yang berhasil diambil.")
             return {"success": False, "logs": logs}
 
-        # 🔹 Konversi semua datetime ke string agar bisa di-JSON
-        for col in ["COMETIME", "LEAVETIME"]:
-            if col in df.columns:
-                df[col] = df[col].astype(str)
+        # ✅ FIX: konversi datetime ke string (per row, bukan per kolom)
+        for row in rows:
+            for col in ["COMETIME", "LEAVETIME"]:
+                if col in row and row[col] is not None:
+                    row[col] = str(row[col])
 
-        logs.append(f"Total jadwal kerja diambil: {len(df)}")
+        logs.append(f"Total jadwal kerja diambil: {len(rows)}")
 
         return {
             "success": True,
             "logs": logs,
-            "count": len(df),
-            "data": df.to_dict(orient="records")
+            "count": len(rows),
+            "data": rows
         }
 
     except Exception as e:
-        logs.append(f"Error: {e}")
+        logs.append(f"Error: {str(e)}")
         return {"success": False, "logs": logs}
 
 def run_schclass():

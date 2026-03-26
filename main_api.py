@@ -49,7 +49,7 @@ def user():
         logger.exception("Error in /user")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/jadwal', methods=['GET'])
+@app.route('/jadwal', methods=['GET', 'POST'])
 def jadwal():
     threading.Thread(target=run_user_temp_sch).start()
     return jsonify({"status": "processing"})

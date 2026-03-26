@@ -1,26 +1,30 @@
 from datetime import datetime, timedelta
 from config.db_access import fetch_table
 
-
 def parse_date(val):
     if not val:
         return None
 
-    # ✅ kalau sudah datetime, langsung pakai
     if isinstance(val, datetime):
         return val
 
     val = str(val).strip()
 
-    # 🔥 bersihin format aneh MDB (kadang ada .0)
+    # bersihin .0 kalau ada
     if "." in val:
         val = val.split(".")[0]
 
     formats = [
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d %H:%M",
+
         "%m/%d/%Y %H:%M:%S",
         "%m/%d/%Y %H:%M",
+
+        # 🔥 INI YANG PENTING (format kamu)
+        "%m/%d/%y %H:%M:%S",
+        "%m/%d/%y %H:%M",
+
         "%Y/%m/%d %H:%M:%S",
         "%Y/%m/%d %H:%M",
     ]
@@ -32,7 +36,6 @@ def parse_date(val):
             continue
 
     return None
-
 
 def fetch_user_temp_sch(limit=None, logs=None):
     if logs is None:

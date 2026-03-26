@@ -1,6 +1,7 @@
 from xml.parsers.expat import model
 
 from flask import Flask, request, jsonify
+import threading
 import sys
 import os
 import json
@@ -48,13 +49,10 @@ def user():
         logger.exception("Error in /user")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/jadwal', methods=['GET', 'POST'])
+@app.route('/jadwal', methods=['GET'])
 def jadwal():
-    try:
-        return jsonify(run_user_temp_sch())
-    except Exception as e:
-        logger.exception("Error in /jadwal")
-        return jsonify({"error": str(e)}), 500
+    threading.Thread(target=run_user_temp_sch).start()
+    return jsonify({"status": "processing"})
 
 @app.route('/shift', methods=['GET', 'POST'])
 def shift():

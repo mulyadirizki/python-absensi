@@ -1,6 +1,26 @@
 from datetime import datetime, timedelta
 from config.db_access import fetch_table
 
+def parse_date(val):
+    if not val:
+        return None
+
+    formats = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%m/%d/%Y %H:%M:%S",
+        "%m/%d/%Y %H:%M",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d %H:%M",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(val, fmt)
+        except:
+            continue
+
+    return None
 
 def fetch_user_temp_sch(limit=None, logs=None):
     if logs is None:
@@ -30,7 +50,9 @@ def fetch_user_temp_sch(limit=None, logs=None):
 
                 # parse datetime
                 try:
-                    dt = datetime.fromisoformat(cometime)
+                    dt = parse_date(cometime)
+                    if not dt:
+                        continue
                 except:
                     continue
 
